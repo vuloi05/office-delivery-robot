@@ -160,8 +160,21 @@ def generate_launch_description():
         ]
     )
 
-    # 9. Lifecycle Manager (Manages active state of all 8 core nodes)
-    lifecycle_manager_node = Node(
+    # 9. Lifecycle Manager for Localization
+    lifecycle_manager_localization_node = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_localization',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'autostart': autostart,
+            'node_names': ['map_server', 'amcl']
+        }]
+    )
+
+    # 10. Lifecycle Manager for Navigation
+    lifecycle_manager_navigation_node = Node(
         package='nav2_lifecycle_manager',
         executable='lifecycle_manager',
         name='lifecycle_manager_navigation',
@@ -170,8 +183,6 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'autostart': autostart,
             'node_names': [
-                'map_server',
-                'amcl',
                 'controller_server',
                 'smoother_server',
                 'planner_server',
@@ -182,7 +193,7 @@ def generate_launch_description():
         }]
     )
 
-    # 10. RViz2 with Nav2 Dashboard
+    # 11. RViz2 with Nav2 Dashboard
     rviz_node = Node(
         condition=IfCondition(use_rviz),
         package='rviz2',
@@ -208,6 +219,7 @@ def generate_launch_description():
         behavior_node,
         bt_navigator_node,
         velocity_smoother_node,
-        lifecycle_manager_node,
+        lifecycle_manager_localization_node,
+        lifecycle_manager_navigation_node,
         rviz_node
     ])
