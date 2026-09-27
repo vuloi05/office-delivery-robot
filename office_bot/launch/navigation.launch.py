@@ -204,7 +204,10 @@ def generate_launch_description():
         output='screen'
     )
 
+    set_rmw = SetEnvironmentVariable('RMW_IMPLEMENTATION', 'rmw_cyclonedds_cpp')
+
     return LaunchDescription([
+        set_rmw,
         map_arg,
         params_arg,
         use_sim_time_arg,
