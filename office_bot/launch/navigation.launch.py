@@ -62,6 +62,8 @@ def generate_launch_description():
             'autostart': LaunchConfiguration('autostart'),
             'use_composition': 'True',
             'use_respawn': 'False',
+            'use_keepout_zones': 'False',
+            'use_speed_zones': 'False',
         }.items(),
     )
 
