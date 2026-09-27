@@ -53,12 +53,26 @@ Mở 2 Tab Terminal độc lập trong VS Code:
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ```
 
-### 🖥️ Tab 2: Khởi động bộ não tự hành Nav2 với Map của dự án
+### 🖥️ Tab 2: Khởi động bộ não tự hành Nav2 (Tự động tải Map + Tham số + RViz2)
 ```bash
-ros2 launch nav2_bringup bringup_launch.py \
-    use_sim_time:=True \
-    map:=$(ros2 pkg prefix office_bot)/share/office_bot/maps/my_map.yaml
+ros2 launch office_bot navigation.launch.py
 ```
+
+*(Tùy chọn: Nếu chỉ muốn kiểm tra Định vị Localization đơn lẻ mà chưa cần bộ điều hướng tự lái, chạy: `ros2 launch office_bot localization.launch.py`)*
+
+---
+
+## 4. Hướng dẫn Lái xe Tự hành bằng RViz2 (Nav2 Goal)
+
+1. Khi `navigation.launch.py` chạy lên, cửa sổ **RViz2** sẽ tự động mở với đầy đủ giao diện Nav2 tiêu chuẩn.
+2. Bản đồ phòng và các cây cột sẽ hiển thị cùng với hai lớp Costmap (Global Costmap & Local Costmap màu xám mờ xung quanh chướng ngại vật).
+3. AMCL đã được cấu hình tự động nhận diện vị trí robot ban đầu ở `(-2.0, -0.5)`.
+4. Trên thanh công cụ trên cùng của RViz2, click chọn công cụ **`Nav2 Goal`** (hoặc `2D Goal Pose`).
+5. Click chuột trái vào một vị trí trống bất kỳ trong phòng mà bạn muốn robot tới, giữ chuột và kéo nhẹ để chỉ hướng quay mặt (Heading) mong muốn của robot rồi thả chuột.
+6. **Quan sát điều kỳ diệu:** 
+   * **Global Planner** lập tức vẽ ra một đường đi màu xanh lá cây uốn lượn né 9 cây cột.
+   * **Controller (DWB / MPPI)** tính toán xung vận tốc `cmd_vel`.
+   * Robot trong Gazebo lăn bánh, tự động bẻ lái và cập bến đích chuẩn xác!
 
 ---
 
