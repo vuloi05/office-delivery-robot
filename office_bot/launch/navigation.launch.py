@@ -1,17 +1,17 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 def generate_launch_description():
-    office_bot_share = get_package_share_directory('office_bot')
+    pkg_share = get_package_share_directory('office_bot')
     nav2_bringup_share = get_package_share_directory('nav2_bringup')
 
-    default_map = os.path.join(office_bot_share, 'maps', 'my_map.yaml')
-    default_params = os.path.join(office_bot_share, 'config', 'nav2_params.yaml')
+    default_map = os.path.join(pkg_share, 'maps', 'my_map.yaml')
+    default_params = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
     default_rviz_config = os.path.join(nav2_bringup_share, 'rviz', 'nav2_default_view.rviz')
 
     map_arg = DeclareLaunchArgument(
@@ -23,7 +23,7 @@ def generate_launch_description():
     params_arg = DeclareLaunchArgument(
         'params_file',
         default_value=default_params,
-        description='Full path to the ROS 2 parameters file to use for all Nav2 nodes'
+        description='Full path to the ROS 2 parameters file'
     )
 
     use_sim_time_arg = DeclareLaunchArgument(
@@ -50,33 +50,147 @@ def generate_launch_description():
         description='Full path to the RViz config file'
     )
 
-    # Launch Nav2 Bringup (localization + navigation stack)
-    nav2_bringup_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_bringup_share, 'launch', 'bringup_launch.py')
-        ),
-        launch_arguments={
-            'map': LaunchConfiguration('map'),
-            'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'params_file': LaunchConfiguration('params_file'),
-            'autostart': LaunchConfiguration('autostart'),
-            'use_composition': 'True',
-            'use_respawn': 'False',
-            'use_keepout_zones': 'False',
-            'use_speed_zones': 'False',
-        }.items(),
+    map_yaml_file = LaunchConfiguration('map')
+    params_file = LaunchConfiguration('params_file')
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    autostart = LaunchConfiguration('autostart')
+    use_rviz = LaunchConfiguration('use_rviz')
+    rviz_config = LaunchConfiguration('rviz_config')
+
+    # Remappings for TF
+    remappings = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
+
+    # 1. Map Server Node
+    map_server_node = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        output='screen',
+        parameters=[params_file, {
+            'yaml_filename': map_yaml_file,
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
     )
 
-    # Launch RViz2 with pre-configured Nav2 view (Goal tool, costmaps, paths)
-    rviz_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_bringup_share, 'launch', 'rviz_launch.py')
-        ),
-        condition=IfCondition(LaunchConfiguration('use_rviz')),
-        launch_arguments={
-            'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'rviz_config': LaunchConfiguration('rviz_config'),
-        }.items(),
+    # 2. AMCL Node (Localization)
+    amcl_node = Node(
+        package='nav2_amcl',
+        executable='amcl',
+        name='amcl',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
+    )
+
+    # 3. Controller Server (DWB / MPPI Path Tracking)
+    controller_node = Node(
+        package='nav2_controller',
+        executable='controller_server',
+        name='controller_server',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings + [('cmd_vel', 'cmd_vel_nav')]
+    )
+
+    # 4. Smoother Server
+    smoother_node = Node(
+        package='nav2_smoother',
+        executable='smoother_server',
+        name='smoother_server',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
+    )
+
+    # 5. Planner Server (Global Path Finding - Navfn)
+    planner_node = Node(
+        package='nav2_planner',
+        executable='planner_server',
+        name='planner_server',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
+    )
+
+    # 6. Behavior Server (Recovery Behaviors: Spin, Backup, Wait)
+    behavior_node = Node(
+        package='nav2_behaviors',
+        executable='behavior_server',
+        name='behavior_server',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
+    )
+
+    # 7. BT Navigator (Behavior Tree Orchestrator)
+    bt_navigator_node = Node(
+        package='nav2_bt_navigator',
+        executable='bt_navigator',
+        name='bt_navigator',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings
+    )
+
+    # 8. Velocity Smoother (Smoothes cmd_vel to motors)
+    velocity_smoother_node = Node(
+        package='nav2_velocity_smoother',
+        executable='velocity_smoother',
+        name='velocity_smoother',
+        output='screen',
+        parameters=[params_file, {
+            'use_sim_time': use_sim_time
+        }],
+        remappings=remappings + [
+            ('cmd_vel', 'cmd_vel_nav'),
+            ('cmd_vel_smoothed', 'cmd_vel')
+        ]
+    )
+
+    # 9. Lifecycle Manager (Manages active state of all 8 core nodes)
+    lifecycle_manager_node = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_navigation',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'autostart': autostart,
+            'node_names': [
+                'map_server',
+                'amcl',
+                'controller_server',
+                'smoother_server',
+                'planner_server',
+                'behavior_server',
+                'bt_navigator',
+                'velocity_smoother'
+            ]
+        }]
+    )
+
+    # 10. RViz2 with Nav2 Dashboard
+    rviz_node = Node(
+        condition=IfCondition(use_rviz),
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_config],
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen'
     )
 
     return LaunchDescription([
@@ -86,6 +200,14 @@ def generate_launch_description():
         autostart_arg,
         use_rviz_arg,
         rviz_config_arg,
-        nav2_bringup_cmd,
-        rviz_cmd,
+        map_server_node,
+        amcl_node,
+        controller_node,
+        smoother_node,
+        planner_node,
+        behavior_node,
+        bt_navigator_node,
+        velocity_smoother_node,
+        lifecycle_manager_node,
+        rviz_node
     ])
