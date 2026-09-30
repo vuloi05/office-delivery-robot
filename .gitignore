@@ -1,0 +1,24 @@
+# Reference and temporary study files
+office_bot/reference_navfn/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*.class
+*.egg-info/
+.eggs/
+
+# ROS 2 build artifacts (in case colcon build runs inside src)
+build/
+install/
+log/
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
