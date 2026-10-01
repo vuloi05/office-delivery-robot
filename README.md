@@ -1,6 +1,6 @@
 # Office Delivery Robot (AMR / Nav2 / ROS 2)
 
-Sổ tay lệnh thực thi và lưu ý kỹ thuật cho dự án Robot tự hành giao đồ văn phòng.
+Dự án Robot tự hành giao hàng văn phòng (Autonomous Mobile Robot - AMR) xây dựng trên nền tảng **ROS 2** và **Navigation2 (Nav2)**. Sổ tay cung cấp hướng dẫn biên dịch, vận hành mô phỏng, cấu hình kiến trúc kỹ thuật và thông số tối ưu hóa thực nghiệm.
 
 ---
 
@@ -12,12 +12,16 @@ ros2_ws/                        <-- THƯ MỤC GỐC WORKSPACE (Chỉ đứng �
 ├── install/                    <-- Tự sinh khi build (File chạy thực tế)
 ├── log/                        <-- Tự sinh khi build (Log lỗi)
 └── src/                        <-- ROOT CỦA GIT REPO (Nơi duy nhất con người viết code)
-    ├── README.md
+    ├── .gitignore              <-- Cấu hình bỏ qua file tạm, cache, tài liệu tham khảo
+    ├── README.md               <-- Tài liệu hướng dẫn & Báo cáo kỹ thuật
     └── office_bot/             <-- Package chính của robot
         ├── maps/               <-- Nơi lưu trữ bản đồ 2D (my_map.yaml, my_map.pgm)
         ├── launch/             <-- Các file khởi động hệ thống (.launch.py)
-        ├── config/             <-- File tham số tham chiếu (.yaml)
-        ├── office_bot/         <-- Mã nguồn Python logic điều khiển
+        │   ├── localization.launch.py  <-- Khởi chạy bản đồ và định vị AMCL
+        │   └── navigation.launch.py    <-- Khởi chạy toàn bộ hệ thống tự hành Nav2
+        ├── config/             <-- File tham số cấu hình chi tiết
+        │   └── nav2_params.yaml        <-- Tham số Costmap, Planner, Controller, AMCL
+        ├── office_bot/         <-- Mã nguồn Python logic điều khiển & nhiệm vụ
         ├── package.xml         <-- Khai báo metadata và dependencies
         ├── setup.cfg           <-- Cấu hình đường dẫn thực thi script
         └── setup.py            <-- Cấu hình cài đặt và nạp tài nguyên
@@ -36,24 +40,24 @@ cd ~/ros2_ws
 # 2. Biên dịch với cờ liên kết mềm (Symlink)
 colcon build --symlink-install
 
-# 3. Nạp môi trường sau khi build (Chỉ cần nếu chưa cấu hình ~/.bashrc)
+# 3. Nạp môi trường sau khi build (Tự động nạp nếu đã cấu hình ~/.bashrc)
 source install/setup.bash
 ```
 
-* **Ý nghĩa cờ `--symlink-install`:** Tạo liên kết mềm (shortcut) từ `src/` sang `install/`. Giúp bạn sửa code Python, sửa file `.yaml` hoặc đổi file map mà **KHÔNG CẦN** gõ lại lệnh build, code tự động cập nhật ngay lập tức.
+* **Ý nghĩa cờ `--symlink-install`:** Tạo liên kết mềm (shortcut) từ `src/` sang `install/`. Cho phép cập nhật code Python, thay đổi file cấu hình `.yaml` hoặc đổi file bản đồ mà **KHÔNG CẦN** biên dịch lại; hệ thống sẽ nhận ngay thay đổi trong lần khởi chạy kế tiếp.
 
 ---
 
 ## 3. Lệnh khởi chạy hệ thống (Running System)
 
-Mở 2 Tab Terminal độc lập trong VS Code:
+Mở 2 Tab Terminal độc lập trong VS Code hoặc Terminator:
 
 ### 🖥️ Tab 1: Khởi động môi trường mô phỏng Gazebo
 ```bash
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ```
 
-### 🖥️ Tab 2: Khởi động bộ não tự hành Nav2 (Tự động tải Map + Tham số + RViz2)
+### 🖥️ Tab 2: Khởi động bộ não tự hành Nav2 (Tự động nạp Map + Cấu hình + RViz2)
 ```bash
 ros2 launch office_bot navigation.launch.py
 ```
@@ -64,19 +68,49 @@ ros2 launch office_bot navigation.launch.py
 
 ## 4. Hướng dẫn Lái xe Tự hành bằng RViz2 (Nav2 Goal)
 
-1. Khi `navigation.launch.py` chạy lên, cửa sổ **RViz2** sẽ tự động mở với đầy đủ giao diện Nav2 tiêu chuẩn.
-2. Bản đồ phòng và các cây cột sẽ hiển thị cùng với hai lớp Costmap (Global Costmap & Local Costmap màu xám mờ xung quanh chướng ngại vật).
-3. AMCL đã được cấu hình tự động nhận diện vị trí robot ban đầu ở `(-2.0, -0.5)`.
+1. Khi `navigation.launch.py` chạy lên, giao diện **RViz2** chuẩn Nav2 sẽ tự động xuất hiện.
+2. Bản đồ văn phòng và các cột chướng ngại vật sẽ hiển thị cùng với hai lớp Costmap (Global & Local Costmap).
+3. Thuật toán lọc hạt AMCL đã được cấu hình tự động nhận diện vị trí robot ban đầu tại gốc tọa độ thế giới:
+   $$\text{initial\_pose} = \{x: 0.0, y: 0.0, z: 0.0, \text{yaw}: 0.0\}$$
 4. Trên thanh công cụ trên cùng của RViz2, click chọn công cụ **`Nav2 Goal`** (hoặc `2D Goal Pose`).
-5. Click chuột trái vào một vị trí trống bất kỳ trong phòng mà bạn muốn robot tới, giữ chuột và kéo nhẹ để chỉ hướng quay mặt (Heading) mong muốn của robot rồi thả chuột.
-6. **Quan sát điều kỳ diệu:** 
-   * **Global Planner** lập tức vẽ ra một đường đi màu xanh lá cây uốn lượn né 9 cây cột.
-   * **Controller (DWB / MPPI)** tính toán xung vận tốc `cmd_vel`.
-   * Robot trong Gazebo lăn bánh, tự động bẻ lái và cập bến đích chuẩn xác!
+5. Click chuột trái vào vị trí đích mong muốn trong phòng, giữ chuột và kéo nhẹ để định hướng quay mặt (Heading) của robot rồi thả chuột.
+6. **Quan sát phản hồi tự hành:** 
+   * **Global Planner:** Tính toán và hiển thị quỹ đạo màu xanh lá cây uốn lượn mượt mà tránh qua các cột.
+   * **Local Controller (DWB):** Điều phối xung vận tốc `cmd_vel` mượt mà, bám sát quỹ đạo.
+   * Robot trong Gazebo di chuyển trơn tru, ôm cua chuẩn xác và dừng đỗ với sai số $\le 2\text{cm}$.
 
 ---
 
-## 4. Các lưu ý kỹ thuật cốt lõi (FAQ & Gotchas)
+## 5. Kiến trúc Kỹ thuật & Tối ưu hóa Dẫn đường (Navigation Tuning)
+
+Hệ thống đã trải qua quá trình tối ưu hóa chuyên sâu nhằm triệt tiêu hoàn toàn hiện tượng robot rung lắc, đổi đường liên tục và đâm va vào chướng ngại vật:
+
+### 5.1. Thuật toán dẫn đường toàn cục (Global Path Planner)
+* **Plugin:** `nav2_navfn_planner::NavfnPlanner`
+* **Thuật toán cốt lõi:** Kích hoạt thuật toán **$A^*$** (`use_astar: true`) thay thế cho Dijkstra cổ điển. Hàm Heuristic khoảng cách Euclid:
+  $$h(n) = \sqrt{(x_n - x_{goal})^2 + (y_n - y_{goal})^2} \times \text{COST\_NEUTRAL}$$
+  tạo độ dốc thế năng định hướng mạnh mẽ về đích, loại bỏ hoàn toàn hiện tượng phân vân lật đường (path flipping) giữa các cột đối xứng.
+* **Tần số quy hoạch:** Khống chế `expected_planner_frequency: 1.0 Hz` (thay vì re-plan liên tục 20Hz), giữ quỹ đạo toàn cục ổn định để bộ điều khiển cục bộ bám theo.
+
+### 5.2. Bộ điều khiển bám quỹ đạo cục bộ (Local Trajectory Controller)
+* **Plugin:** `dwb_core::DWBLocalPlanner` (thay thế cho MPPI vốn tiêu tốn 100% CPU trên môi trường ảo hóa WSL2).
+* **Khống chế động học an toàn (Burger Model):**
+  * $v_{\max} = 0.22\,\text{m/s}$, $v_{\min} = -0.22\,\text{m/s}$
+  * $\omega_{\max} = 1.5\,\text{rad/s}$, $\dot{\omega}_{\max} = 3.2\,\text{rad/s}^2$
+* **Velocity Smoother:** Cấu hình phản hồi vòng kín `feedback: "CLOSED_LOOP"` bám theo vận tốc thực tế của bánh xe từ Odometry, loại bỏ hiện tượng sai lệch dự phóng mù (Open-Loop Hallucination).
+
+### 5.3. Xử lý bản đồ chi phí (Costmap 2D Optimization)
+* **Bán kính robot thực tế:** `robot_radius: 0.12 m` (vừa khít kích thước TurtleBot3 Burger).
+* **Bán kính phình cản an toàn:** Giảm `inflation_radius: 0.35 m` với hệ số phân rã `cost_scaling_factor: 5.0`.
+* **Giải pháp chống kẹt:** Khoảng cách giữa các cột trong phòng là $1.0\,\text{m}$. Trước đây bán kính phình mặc định $0.7\,\text{m}$ khiến hai vùng cấm của hai cột giao nhau ($0.7 \times 2 = 1.4\,\text{m} > 1.0\,\text{m}$), biến lối đi thành tường ảo. Việc đưa về $0.35\,\text{m}$ mở thông lối đi an toàn rộng $0.3\,\text{m}$ cho robot.
+
+### 5.4. Đồng bộ Middleware truyền thông (DDS Synchronization)
+* Ép chuẩn cố định `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` xuyên suốt toàn bộ hệ điều hành và file launch.
+* Triệt tiêu lỗi không tương thích phiên bản (Inconsistent TypeObject) và lỗi thiếu symbol (`has_buffer_fields_...`) của FastDDS trên Ubuntu 26.04 dev.
+
+---
+
+## 6. Các lưu ý kỹ thuật cốt lõi (FAQ & Gotchas)
 
 ### Q1: Vị trí đứng của Terminal khi thao tác lệnh?
 * **Lệnh chạy robot (`ros2 launch`, `ros2 run`, `ros2 topic`):** Đứng ở **bất kỳ thư mục nào** trong terminal cũng chạy được, miễn là môi trường đã được `source`.
@@ -112,6 +146,23 @@ git status
 # Thêm, commit và đẩy lên GitHub
 git add .
 git commit -m "Noi dung cap nhat"
-git push
+git push origin main
 ```
-*(Đã bật `git config --global credential.helper store` nên các lần push sau không phải nhập lại Token).*
+*(Đã cấu hình `git config --global credential.helper store` nên các lần push sau không phải nhập lại Token).*
+
+---
+
+## 7. Lộ trình phát triển tiếp theo (Next Milestones)
+
+- [x] **Giai đoạn 1: Nền tảng Tự hành Cốt lõi (Core Navigation Stack)**
+  - [x] Bản đồ hóa môi trường văn phòng 3D (SLAM).
+  - [x] Tối ưu hóa định vị thích nghi Monte Carlo (AMCL).
+  - [x] Tinh chỉnh tham số Global Planner ($A^*$) và Local Controller (DWB).
+  - [x] Đạt độ chính xác dừng đỗ $\le 2\text{cm}$, số lần kích hoạt phục hồi kẹt (Recoveries) = 0.
+- [ ] **Giai đoạn 2: Tự động hóa Nhiệm vụ Giao hàng (Autonomous Mission Automation)**
+  - [ ] Xây dựng script Python điều phối nhiệm vụ giao hàng đa điểm (`office_bot/delivery_mission.py`).
+  - [ ] Khai báo tọa độ các vị trí thực tế trong văn phòng: Trạm sạc (`Home`), Kho lấy đồ (`Pantry`), Bàn nhân viên (`Desk_1`, `Desk_2`).
+  - [ ] Tích hợp API theo dõi tiến độ thời gian thực (ETA, trạng thái nhận hàng, tự động quay về trạm sạc khi hoàn thành).
+- [ ] **Giai đoạn 3: Giao diện Người dùng & Tích hợp Phần cứng (Deployment & GUI)**
+  - [ ] Xây dựng Web Dashboard hoặc API gửi lệnh giao hàng trực quan.
+  - [ ] Chuyển giao cấu hình sang phần cứng thực tế (Sim2Real).
