@@ -62,6 +62,12 @@ ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ros2 launch office_bot navigation.launch.py
 ```
 
+### 🖥️ Tab 3: Khởi động kịch bản tự động giao hàng khép kín (Autonomous Mission)
+```bash
+ros2 run office_bot delivery_mission
+```
+*(Robot sẽ tự động xuất phát từ Home $\to$ đến Pantry lấy đồ $\to$ đến Desk 1 giao hàng $\to$ tự động quay về Home sạc pin mà không cần can thiệp chuột thủ công).*
+
 *(Tùy chọn: Nếu chỉ muốn kiểm tra Định vị Localization đơn lẻ mà chưa cần bộ điều hướng tự lái, chạy: `ros2 launch office_bot localization.launch.py`)*
 
 ---
@@ -161,10 +167,10 @@ git push origin main
   - [x] Tối ưu hóa định vị thích nghi Monte Carlo (AMCL).
   - [x] Tinh chỉnh tham số Global Planner ($A^*$) và Local Controller (DWB).
   - [x] Đạt độ chính xác dừng đỗ $\le 2\text{cm}$, số lần kích hoạt phục hồi kẹt (Recoveries) = 0.
-- [ ] **Giai đoạn 2: Tự động hóa Nhiệm vụ Giao hàng (Autonomous Mission Automation)**
-  - [ ] Xây dựng script Python điều phối nhiệm vụ giao hàng đa điểm (`office_bot/delivery_mission.py`).
-  - [ ] Khai báo tọa độ các vị trí thực tế trong văn phòng: Trạm sạc (`Home`), Kho lấy đồ (`Pantry`), Bàn nhân viên (`Desk_1`, `Desk_2`).
-  - [ ] Tích hợp API theo dõi tiến độ thời gian thực (ETA, trạng thái nhận hàng, tự động quay về trạm sạc khi hoàn thành).
+- [x] **Giai đoạn 2: Tự động hóa Nhiệm vụ Giao hàng (Autonomous Mission Automation)**
+  - [x] Xây dựng script Python điều phối nhiệm vụ giao hàng đa điểm (`office_bot/delivery_mission.py`).
+  - [x] Khai báo tọa độ các vị trí thực tế trong văn phòng: Trạm sạc (`Home`), Kho lấy đồ (`Pantry`), Bàn nhân viên (`Desk_1`, `Desk_2`).
+  - [x] Tích hợp API theo dõi tiến độ thời gian thực (ETA, quãng đường còn lại, mô phỏng thời gian tương tác người dùng, tự động quay về trạm sạc khi hoàn thành).
 - [ ] **Giai đoạn 3: Giao diện Người dùng & Tích hợp Phần cứng (Deployment & GUI)**
   - [ ] Xây dựng Web Dashboard hoặc API gửi lệnh giao hàng trực quan.
   - [ ] Chuyển giao cấu hình sang phần cứng thực tế (Sim2Real).

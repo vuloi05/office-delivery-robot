@@ -25,6 +25,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'delivery_mission = office_bot.delivery_mission:main',
         ],
     },
 )
