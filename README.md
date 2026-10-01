@@ -71,7 +71,9 @@ ros2 launch office_bot navigation.launch.py
 1. Khi `navigation.launch.py` chạy lên, giao diện **RViz2** chuẩn Nav2 sẽ tự động xuất hiện.
 2. Bản đồ văn phòng và các cột chướng ngại vật sẽ hiển thị cùng với hai lớp Costmap (Global & Local Costmap).
 3. Thuật toán lọc hạt AMCL đã được cấu hình tự động nhận diện vị trí robot ban đầu tại gốc tọa độ thế giới:
-   $$\text{initial\_pose} = \{x: 0.0, y: 0.0, z: 0.0, \text{yaw}: 0.0\}$$
+   ```yaml
+   initial_pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+   ```
 4. Trên thanh công cụ trên cùng của RViz2, click chọn công cụ **`Nav2 Goal`** (hoặc `2D Goal Pose`).
 5. Click chuột trái vào vị trí đích mong muốn trong phòng, giữ chuột và kéo nhẹ để định hướng quay mặt (Heading) của robot rồi thả chuột.
 6. **Quan sát phản hồi tự hành:** 
@@ -88,8 +90,8 @@ Hệ thống đã trải qua quá trình tối ưu hóa chuyên sâu nhằm tri�
 ### 5.1. Thuật toán dẫn đường toàn cục (Global Path Planner)
 * **Plugin:** `nav2_navfn_planner::NavfnPlanner`
 * **Thuật toán cốt lõi:** Kích hoạt thuật toán **$A^*$** (`use_astar: true`) thay thế cho Dijkstra cổ điển. Hàm Heuristic khoảng cách Euclid:
-  $$h(n) = \sqrt{(x_n - x_{goal})^2 + (y_n - y_{goal})^2} \times \text{COST\_NEUTRAL}$$
-  tạo độ dốc thế năng định hướng mạnh mẽ về đích, loại bỏ hoàn toàn hiện tượng phân vân lật đường (path flipping) giữa các cột đối xứng.
+  $$h(n) = \sqrt{(x_n - x_{\text{goal}})^2 + (y_n - y_{\text{goal}})^2} \cdot C_{\text{neutral}}$$
+  *(với $C_{\text{neutral}} = 50$ là chi phí di chuyển chuẩn qua một ô trống `COST_NEUTRAL`)* tạo độ dốc thế năng định hướng mạnh mẽ về đích, loại bỏ hoàn toàn hiện tượng phân vân lật đường (path flipping) giữa các cột đối xứng.
 * **Tần số quy hoạch:** Khống chế `expected_planner_frequency: 1.0 Hz` (thay vì re-plan liên tục 20Hz), giữ quỹ đạo toàn cục ổn định để bộ điều khiển cục bộ bám theo.
 
 ### 5.2. Bộ điều khiển bám quỹ đạo cục bộ (Local Trajectory Controller)
